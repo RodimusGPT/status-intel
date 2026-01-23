@@ -221,7 +221,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
         {/* Best Practices */}
         {intelligence.best_practices && intelligence.best_practices.length > 0 && (
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-            <Text className="text-lg font-bold text-gray-900 mb-3">Best Practices</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-3">✨ Best Practices</Text>
             {intelligence.best_practices.map((item: string, i: number) => (
               <View key={i} className="flex-row items-start mb-2">
                 <Text className="text-green-600 mr-2">✓</Text>
@@ -234,7 +234,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
         {/* Lounge Insight */}
         {intelligence.lounge_insight && (
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-            <Text className="text-lg font-bold text-gray-900 mb-2">Lounge</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-2">🛋️ Lounge</Text>
             <Text className="text-gray-700 leading-5">{intelligence.lounge_insight}</Text>
           </View>
         )}
@@ -242,7 +242,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
         {/* Breakfast Insight */}
         {intelligence.breakfast_insight && (
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-            <Text className="text-lg font-bold text-gray-900 mb-2">Breakfast</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-2">🍳 Breakfast</Text>
             <Text className="text-gray-700 leading-5">{intelligence.breakfast_insight}</Text>
           </View>
         )}
@@ -250,7 +250,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
         {/* Recognition Insight */}
         {intelligence.recognition_insight && (
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-            <Text className="text-lg font-bold text-gray-900 mb-2">Recognition</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-2">🎖️ Recognition</Text>
             <Text className="text-gray-700 leading-5">{intelligence.recognition_insight}</Text>
           </View>
         )}
@@ -258,10 +258,10 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
         {/* Watch Outs */}
         {intelligence.watch_outs && intelligence.watch_outs.length > 0 && (
           <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-            <Text className="text-lg font-bold text-gray-900 mb-3">Watch Outs</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-3">⚠️ Watch Outs</Text>
             {intelligence.watch_outs.map((item: string, i: number) => (
               <View key={i} className="flex-row items-start mb-2">
-                <Text className="text-amber-600 mr-2">!</Text>
+                <Text className="text-amber-600 mr-2">⚠️</Text>
                 <Text className="text-sm text-gray-700 flex-1">{item}</Text>
               </View>
             ))}
@@ -278,7 +278,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
       {intelligence.basedOnReports && (
         <View className="bg-blue-50 rounded-lg p-3 mb-4">
           <Text className="text-xs font-semibold text-blue-900 mb-1">
-            ELITE TRAVELER INTELLIGENCE
+            🔍 ELITE TRAVELER INTELLIGENCE
           </Text>
           <Text className="text-xs text-blue-700">
             Based on {intelligence.basedOnReports} real traveler reports
@@ -327,7 +327,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
               <Text className="text-sm font-semibold text-gray-900 mb-2">Warnings:</Text>
               {intelligence.overallRecommendation.warnings.map((item: string, i: number) => (
                 <View key={i} className="flex-row items-start mb-1">
-                  <Text className="text-amber-600 mr-2">!</Text>
+                  <Text className="text-amber-600 mr-2">⚠️</Text>
                   <Text className="text-sm text-gray-700 flex-1">{item}</Text>
                 </View>
               ))}
@@ -339,8 +339,8 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
       {/* Breakfast */}
       {intelligence.breakfastInsight?.totalReports >= 3 && (
         <InsightCard
-          title="Elite Breakfast"
-          icon="breakfast"
+          title="🍳 Elite Breakfast"
+          icon="🍳"
           insights={intelligence.breakfastInsight.keyInsights || []}
         >
           <View className="flex-row justify-between mb-2">
@@ -356,7 +356,7 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
               <View>
                 <Text className="text-xs text-gray-500">Quality</Text>
                 <Text className="text-sm font-semibold text-gray-900">
-                  {intelligence.breakfastInsight.qualityRating.toFixed(1)}/5
+                  {intelligence.breakfastInsight.qualityRating.toFixed(1)}/5 ⭐
                 </Text>
               </View>
             )}
@@ -367,15 +367,15 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
       {/* Lounge */}
       {intelligence.loungeInsight?.hasLounge && intelligence.loungeInsight?.totalReports >= 3 && (
         <InsightCard
-          title="Executive Lounge"
-          icon="lounge"
+          title="🍷 Executive Lounge"
+          icon="🍷"
           insights={intelligence.loungeInsight?.keyInsights || []}
         >
           {intelligence.loungeInsight?.qualityRating && (
             <View className="mb-2">
               <Text className="text-xs text-gray-500">Quality Rating</Text>
               <Text className="text-sm font-semibold text-gray-900">
-                {intelligence.loungeInsight.qualityRating.toFixed(1)}/5
+                {intelligence.loungeInsight.qualityRating.toFixed(1)}/5 ⭐
               </Text>
             </View>
           )}
@@ -385,8 +385,8 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
       {/* Recognition */}
       {intelligence.recognitionInsight?.totalReports >= 3 && (
         <InsightCard
-          title="Elite Recognition"
-          icon="recognition"
+          title="👋 Elite Recognition"
+          icon="👋"
           insights={intelligence.recognitionInsight?.keyInsights || []}
         >
           {intelligence.recognitionInsight?.style && (
@@ -403,8 +403,8 @@ function IntelligenceDisplay({ intelligence }: { intelligence: any }) {
       {/* Late Checkout */}
       {intelligence.lateCheckoutInsight?.totalReports >= 3 && (
         <InsightCard
-          title="Late Checkout"
-          icon="checkout"
+          title="⏰ Late Checkout"
+          icon="⏰"
           insights={intelligence.lateCheckoutInsight?.keyInsights || []}
         >
           {intelligence.lateCheckoutInsight?.successRate !== undefined && (
@@ -457,7 +457,7 @@ function InsightCard({
 
       {insights.length > 0 && (
         <View className="mt-3 pt-3 border-t border-gray-100">
-          <Text className="text-xs font-semibold text-gray-500 mb-2">KEY INSIGHTS</Text>
+          <Text className="text-xs font-semibold text-gray-500 mb-2">💡 KEY INSIGHTS</Text>
           {insights.map((insight, i) => (
             <View key={i} className="flex-row items-start mb-2">
               <Text className="text-blue-500 mr-2 text-xs">•</Text>
@@ -495,28 +495,28 @@ function NoIntelligenceState({ propertyName }: { propertyName: string }) {
         <Text className="text-sm font-semibold text-gray-700 mb-3">What you'll see once generated:</Text>
 
         <View className="bg-gray-50 rounded-lg p-3 mb-2">
-          <Text className="text-sm font-semibold text-gray-900">Suite Upgrade Rates</Text>
+          <Text className="text-sm font-semibold text-gray-900">🏨 Suite Upgrade Rates</Text>
           <Text className="text-xs text-gray-600 mt-1">
             Success rates by elite status based on real reports
           </Text>
         </View>
 
         <View className="bg-gray-50 rounded-lg p-3 mb-2">
-          <Text className="text-sm font-semibold text-gray-900">Breakfast Quality</Text>
+          <Text className="text-sm font-semibold text-gray-900">🍳 Breakfast Quality</Text>
           <Text className="text-xs text-gray-600 mt-1">
             Where breakfast is served and quality ratings
           </Text>
         </View>
 
         <View className="bg-gray-50 rounded-lg p-3 mb-2">
-          <Text className="text-sm font-semibold text-gray-900">Lounge Experience</Text>
+          <Text className="text-sm font-semibold text-gray-900">🍷 Lounge Experience</Text>
           <Text className="text-xs text-gray-600 mt-1">
             Executive lounge quality and access patterns
           </Text>
         </View>
 
         <View className="bg-gray-50 rounded-lg p-3">
-          <Text className="text-sm font-semibold text-gray-900">Key Insights</Text>
+          <Text className="text-sm font-semibold text-gray-900">💡 Key Insights</Text>
           <Text className="text-xs text-gray-600 mt-1">
             Specific tips from experienced elite travelers
           </Text>
