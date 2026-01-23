@@ -27,9 +27,16 @@ const TIER_CONFIG: Record<ConfidenceTier, { label: string; color: string }> = {
 /**
  * Calculate upgrade confidence tier from percentage and sample size.
  *
+ * TODO: Implement your confidence calculation logic here.
+ *
+ * Consider these trade-offs:
+ * - Should 100% with 2 reports be "High" or just "Likely"?
+ * - What's the minimum sample size to trust a percentage?
+ * - Should a 50% rate with 20 reports beat 100% with 2 reports?
+ *
  * @param percentage - The upgrade success rate (0-100)
  * @param sampleSize - Number of stay reports this is based on
- * @returns ConfidenceTier
+ * @returns ConfidenceTier - 'high' | 'likely' | 'possible' | 'unlikely' | 'unknown'
  */
 export function calculateConfidenceTier(
   percentage: number | null | undefined,
