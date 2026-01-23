@@ -47,64 +47,63 @@ export const ROOM_TYPE_PATTERNS: RoomMapping[] = [
 export const BRAND_SPECIFIC_MAPPINGS: Record<string, Record<string, RoomType>> = {
   marriott: {
     'M Club Room': 'premium',
-    'M Club King': 'premium',
     'Club Level Room': 'premium',
     'Grand Room': 'premium',
+    'Premier Room': 'premium',
     'Junior King Suite': 'junior_suite',
     'Studio': 'junior_suite',
     'Marquis Suite': 'suite',
+    'Vice Presidential': 'suite',
     'Presidential Suite': 'specialty',
-    'Ritz-Carlton Suite': 'specialty',
+    'Royal Suite': 'specialty',
   },
   hyatt: {
     'Regency Club': 'premium',
-    'Regency Club King': 'premium',
+    'Club Access': 'premium',
     'Grand Club': 'premium',
     'Park King': 'premium',
     'Regency Suite': 'junior_suite',
+    'Park Suite': 'junior_suite',
+    'Diplomat Suite': 'suite',
     'Grand Suite': 'suite',
     'Presidential Suite': 'specialty',
     'Ambassador Suite': 'specialty',
   },
   hilton: {
     'Executive Room': 'premium',
-    'Executive King': 'premium',
     'Plus Room': 'premium',
+    'Premium Room': 'premium',
     'Junior Suite': 'junior_suite',
+    'Alcove Suite': 'junior_suite',
     'Executive Suite': 'suite',
+    'Corner Suite': 'suite',
     'Presidential Suite': 'specialty',
-    'Conrad Suite': 'specialty',
+    'Royal Suite': 'specialty',
   },
   ihg: {
     'Club Room': 'premium',
     'Club InterContinental': 'premium',
     'Executive Room': 'premium',
     'Junior Suite': 'junior_suite',
+    'Studio Suite': 'junior_suite',
     'Executive Suite': 'suite',
+    'Club Suite': 'suite',
     'Presidential Suite': 'specialty',
-    'Ambassador Suite': 'specialty',
+    'Royal Suite': 'specialty',
   },
 };
 
-export function classifyRoomType(
-  categoryName: string,
-  brandCode?: string
-): RoomType {
+export function classifyRoomType(categoryName: string, brandCode?: string): RoomType {
   if (brandCode && BRAND_SPECIFIC_MAPPINGS[brandCode]) {
     const brandMapping = BRAND_SPECIFIC_MAPPINGS[brandCode][categoryName];
-    if (brandMapping) {
-      return brandMapping;
-    }
+    if (brandMapping) return brandMapping;
   }
 
   for (const mapping of ROOM_TYPE_PATTERNS) {
     const pattern = typeof mapping.pattern === 'string'
       ? new RegExp(mapping.pattern, 'i')
       : mapping.pattern;
-
-    if (pattern.test(categoryName)) {
-      return mapping.type;
-    }
+    if (pattern.test(categoryName)) return mapping.type;
   }
 
   return 'standard';
@@ -114,21 +113,11 @@ export function isSuiteType(roomType: RoomType): boolean {
   return ['junior_suite', 'suite', 'specialty'].includes(roomType);
 }
 
-export function isSuiteUpgrade(
-  bookedType: RoomType,
-  receivedType: RoomType
-): boolean {
-  const bookedIsSuite = isSuiteType(bookedType);
-  const receivedIsSuite = isSuiteType(receivedType);
-  return !bookedIsSuite && receivedIsSuite;
+export function isSuiteUpgrade(bookedType: RoomType, receivedType: RoomType): boolean {
+  return !isSuiteType(bookedType) && isSuiteType(receivedType);
 }
 
-export function isAnyUpgrade(
-  bookedType: RoomType,
-  receivedType: RoomType
-): boolean {
+export function isAnyUpgrade(bookedType: RoomType, receivedType: RoomType): boolean {
   const tierOrder: RoomType[] = ['standard', 'premium', 'junior_suite', 'suite', 'specialty'];
-  const bookedTier = tierOrder.indexOf(bookedType);
-  const receivedTier = tierOrder.indexOf(receivedType);
-  return receivedTier > bookedTier;
+  return tierOrder.indexOf(receivedType) > tierOrder.indexOf(bookedType);
 }

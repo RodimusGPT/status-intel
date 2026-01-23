@@ -22,7 +22,6 @@ export const EVS_WEIGHTS = {
   eliteConsistency: 0.10,
 } as const;
 
-/** Maps lounge_quality enum to base score (1-10) */
 export const LOUNGE_QUALITY_SCORES: Record<string, number> = {
   exceptional: 10,
   good: 7,
@@ -31,7 +30,6 @@ export const LOUNGE_QUALITY_SCORES: Record<string, number> = {
   none: 0,
 };
 
-/** Maps happy_hour_type enum to food quality score (1-10) */
 export const LOUNGE_FOOD_SCORES: Record<string, number> = {
   full_meal: 10,
   substantial_appetizers: 8,
@@ -47,9 +45,7 @@ export function calculateLoungeScore(
   foodQuality: string | null,
   loungeScoreRating: number | null
 ): number {
-  if (!hasLounge) {
-    return 0;
-  }
+  if (!hasLounge) return 0;
 
   let qualityScore = 5;
   if (loungeQuality && LOUNGE_QUALITY_SCORES[loungeQuality] !== undefined) {
@@ -83,11 +79,9 @@ export function calculateBreakfastScore(
   breakfastLocation: string | null
 ): number {
   if (!breakfastScore) return 0;
-
   let score = breakfastScore * 2;
   const locationBonus = BREAKFAST_LOCATION_BONUS[breakfastLocation || 'restaurant'] || 1.0;
   score = score * locationBonus;
-
   return Math.min(Math.round(score * 10) / 10, 10);
 }
 
@@ -96,19 +90,14 @@ export function calculateUpgradeScore(
   roomUpgradePct: number | null,
   recognitionStyle: string | null
 ): number {
-  if (suiteUpgradePct === null && roomUpgradePct === null) {
-    return 5;
-  }
+  if (suiteUpgradePct === null && roomUpgradePct === null) return 5;
 
   const suiteScore = (suiteUpgradePct || 0) / 10;
   const roomBonus = Math.min((roomUpgradePct || 0) / 50, 2);
 
   let recognitionBonus = 0;
-  if (recognitionStyle === 'proactive') {
-    recognitionBonus = 1;
-  } else if (recognitionStyle === 'asked_received') {
-    recognitionBonus = 0.5;
-  }
+  if (recognitionStyle === 'proactive') recognitionBonus = 1;
+  else if (recognitionStyle === 'asked_received') recognitionBonus = 0.5;
 
   return Math.min(Math.round((suiteScore + roomBonus + recognitionBonus) * 10) / 10, 10);
 }
@@ -128,7 +117,6 @@ export function calculateServiceScore(
   const recognitionScore = RECOGNITION_STYLE_SCORES[recognitionStyle || 'none'] || 4;
   const lateCheckoutScore = lateCheckoutGranted ? 10 : 4;
   const amenityScore = hasWelcomeAmenity ? 10 : 5;
-
   return Math.round((recognitionScore * 0.4 + lateCheckoutScore * 0.4 + amenityScore * 0.2) * 10) / 10;
 }
 
@@ -155,7 +143,6 @@ export function calculateEVS(categories: EVSCategoryScores): number {
     categories.service * EVS_WEIGHTS.service +
     categories.hardProduct * EVS_WEIGHTS.hardProduct +
     categories.eliteConsistency * EVS_WEIGHTS.eliteConsistency;
-
   return Math.round(weighted * 10) / 10;
 }
 
@@ -184,11 +171,7 @@ export function calculateEVSFromAudits(
   upgradeStats: { suiteUpgradePct: number | null; roomUpgradePct: number | null }
 ): EVSResult {
   if (audits.length === 0) {
-    return {
-      score: null,
-      categoryScores: null,
-      auditCount: 0,
-    };
+    return { score: null, categoryScores: null, auditCount: 0 };
   }
 
   const avgBreakfastScore = average(audits.map(a => a.breakfast_score));
@@ -203,32 +186,15 @@ export function calculateEVSFromAudits(
   const hasWelcomeAmenityRate = audits.filter(a => a.welcome_amenity).length / audits.length;
 
   const categoryScores: EVSCategoryScores = {
-    upgrade: calculateUpgradeScore(
-      upgradeStats.suiteUpgradePct,
-      upgradeStats.roomUpgradePct,
-      mostCommonRecognition
-    ),
+    upgrade: calculateUpgradeScore(upgradeStats.suiteUpgradePct, upgradeStats.roomUpgradePct, mostCommonRecognition),
     breakfast: calculateBreakfastScore(avgBreakfastScore, mostCommonBreakfastLocation),
-    lounge: calculateLoungeScore(
-      loungeInfo.has_lounge,
-      mostCommonLoungeQuality,
-      loungeInfo.happy_hour_type || null,
-      avgLoungeScore
-    ),
-    service: calculateServiceScore(
-      mostCommonRecognition,
-      lateCheckoutRate > 0.5,
-      hasWelcomeAmenityRate > 0.5
-    ),
+    lounge: calculateLoungeScore(loungeInfo.has_lounge, mostCommonLoungeQuality, loungeInfo.happy_hour_type || null, avgLoungeScore),
+    service: calculateServiceScore(mostCommonRecognition, lateCheckoutRate > 0.5, hasWelcomeAmenityRate > 0.5),
     hardProduct: avgHardProduct ? avgHardProduct : 5,
     eliteConsistency: avgEliteConsistency ? avgEliteConsistency : 5,
   };
 
-  return {
-    score: calculateEVS(categoryScores),
-    categoryScores,
-    auditCount: audits.length,
-  };
+  return { score: calculateEVS(categoryScores), categoryScores, auditCount: audits.length };
 }
 
 function average(values: (number | null)[]): number | null {
@@ -244,10 +210,7 @@ function mode<T>(values: T[]): T | null {
   let maxCount = 0;
   let result: T | null = null;
   counts.forEach((count, value) => {
-    if (count > maxCount) {
-      maxCount = count;
-      result = value;
-    }
+    if (count > maxCount) { maxCount = count; result = value; }
   });
   return result;
 }

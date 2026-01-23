@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="audit"
         options={{
-          href: null,
+          href: null, // Hide this tab for now
         }}
       />
       <Tabs.Screen
