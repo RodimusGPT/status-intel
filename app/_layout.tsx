@@ -3,7 +3,8 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -21,22 +22,41 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
+  const [fontsReady, setFontsReady] = useState(false);
+  
+  // On web, fonts are loaded differently - use system fonts as fallback
+  const fontConfig = Platform.select({
+    web: {
+      ...FontAwesome.font,
+    },
+    default: {
+      SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+      ...FontAwesome.font,
+    },
   });
 
+  const [loaded, error] = useFonts(fontConfig);
+
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      // On web, font loading errors are non-fatal - use system fonts
+      if (Platform.OS === 'web') {
+        console.warn('Font loading error (non-fatal on web):', error);
+        setFontsReady(true);
+      } else {
+        throw error;
+      }
+    }
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
+      setFontsReady(true);
       SplashScreen.hideAsync();
     }
   }, [loaded]);
 
-  if (!loaded) {
+  if (!fontsReady && !loaded) {
     return null;
   }
 
