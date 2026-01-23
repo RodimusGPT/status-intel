@@ -17,6 +17,7 @@ export interface AuditFormData {
   cultureScore?: number;
   stayDate: string;
   notes?: string;
+  // Elite Benefits
   breakfastLocation?: Enums<'breakfast_location'>;
   happyHourType?: Enums<'happy_hour_type'>;
   loungeQuality?: Enums<'lounge_quality'>;
@@ -51,6 +52,7 @@ export function useAudit() {
         culture_score: formData.cultureScore,
         stay_date: formData.stayDate,
         notes: formData.notes,
+        // Elite Benefits
         breakfast_location: formData.breakfastLocation,
         happy_hour_type: formData.happyHourType,
         lounge_quality: formData.loungeQuality,

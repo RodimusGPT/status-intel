@@ -11,6 +11,7 @@ type Brand = Tables<'brands'>;
 type RoomType = Database['public']['Enums']['room_type'];
 type StandardizedRoom = Tables<'standardized_rooms'>;
 
+// Property details from the new property_details table
 export interface PropertyDetails {
   property_id: string;
   room_count: number | null;
@@ -36,6 +37,7 @@ export interface PropertyDetails {
   last_scraped_at: string | null;
 }
 
+// Property lounge information
 export interface PropertyLounge {
   id: string;
   property_id: string;
@@ -53,12 +55,14 @@ export interface PropertyLounge {
   report_count: number;
 }
 
+// Upgrade statistics calculated from audits
 export interface UpgradeStats {
-  suiteUpgradePct: number | null;
-  roomUpgradePct: number | null;
-  totalAuditsWithRoomData: number;
+  suiteUpgradePct: number | null;  // % of stays that got suite upgrade
+  roomUpgradePct: number | null;   // % of stays that got any upgrade
+  totalAuditsWithRoomData: number; // Audits used for calculation
 }
 
+// Explicit type for joined query results (Supabase relations aren't typed)
 type PropertyQueryResult = Property & {
   brand: (Brand & { program_id: string }) | null;
   score: PropertyScore | null;
@@ -67,20 +71,27 @@ type PropertyQueryResult = Property & {
 export interface PropertyWithScore extends Property {
   brand?: (Brand & { program_id?: string }) | null;
   score?: PropertyScore | null;
+  // Note: google_rating, google_review_count, and address_full are already in Property base type
 }
 
+// Loyalty program type matching the database table
 export interface LoyaltyProgram {
   id: string;
   name: string;
   code: string;
-  brand_count: number | null;
-  propertyCount: number;
+  brand_count: number | null;  // Can be null in database
+  propertyCount: number;       // Computed from properties, not brands
 }
 
+/**
+ * Calculate upgrade statistics from audits with room type data
+ * This determines what % of stays resulted in suite upgrades vs any upgrades
+ */
 async function calculateUpgradeStats(
   audits: Tables<'stay_audits'>[],
   brandCode?: string
 ): Promise<UpgradeStats> {
+  // Filter audits that have both booked and received room data
   const auditsWithRoomData = audits.filter(
     (a) => a.booked_category_id && a.received_category_id
   );
@@ -89,6 +100,7 @@ async function calculateUpgradeStats(
     return { suiteUpgradePct: null, roomUpgradePct: null, totalAuditsWithRoomData: 0 };
   }
 
+  // Fetch room categories for all booked/received IDs
   const roomIds = new Set<string>();
   auditsWithRoomData.forEach((a) => {
     if (a.booked_category_id) roomIds.add(a.booked_category_id);
@@ -104,9 +116,11 @@ async function calculateUpgradeStats(
     return { suiteUpgradePct: null, roomUpgradePct: null, totalAuditsWithRoomData: 0 };
   }
 
+  // Create lookup map
   const roomMap = new Map<string, StandardizedRoom>();
   rooms.forEach((r) => roomMap.set(r.id, r as StandardizedRoom));
 
+  // Count upgrades
   let suiteUpgrades = 0;
   let anyUpgrades = 0;
 
@@ -116,6 +130,7 @@ async function calculateUpgradeStats(
 
     if (!booked || !received) continue;
 
+    // Get room types (use DB value if set, otherwise classify from name)
     const bookedType: RoomType = booked.room_type || classifyRoomType(booked.category, brandCode);
     const receivedType: RoomType = received.room_type || classifyRoomType(received.category, brandCode);
 
@@ -139,9 +154,9 @@ async function calculateUpgradeStats(
 interface UsePropertiesOptions {
   search?: string;
   brandId?: string;
-  programIds?: string[];
+  programIds?: string[];  // Filter by loyalty program UUIDs
   sortBy?: 'eri' | 'evs' | 'name' | 'city';
-  limit?: number;
+  limit?: number;  // Max properties to fetch (default 100)
 }
 
 export function useProperties(options: UsePropertiesOptions = {}) {
@@ -155,10 +170,14 @@ export function useProperties(options: UsePropertiesOptions = {}) {
     setError(null);
 
     try {
+      // Build base query for count
       let countQuery = supabase
         .from('properties')
         .select('*, brand:brands!inner(program_id)', { count: 'exact', head: true });
 
+      // Build query for data
+      // When sorting by score, we need to fetch all properties first since
+      // Supabase can't sort by joined table columns. We'll sort client-side.
       const needsClientSort = options.sortBy === 'evs' || options.sortBy === 'eri';
       const fetchLimit = needsClientSort ? 500 : (options.limit || 100);
 
@@ -171,12 +190,14 @@ export function useProperties(options: UsePropertiesOptions = {}) {
         `)
         .limit(fetchLimit);
 
+      // Apply search filter (searches name, city, country, and keywords)
       if (options.search) {
         const searchFilter = `name.ilike.%${options.search}%,city.ilike.%${options.search}%,country.ilike.%${options.search}%,search_keywords.ilike.%${options.search}%`;
         query = query.or(searchFilter);
         countQuery = countQuery.or(searchFilter);
       }
 
+      // Apply program filter using brand.program_id foreign key
       if (options.programIds && options.programIds.length > 0) {
         query = query.in('brand.program_id', options.programIds);
         countQuery = countQuery.in('brand.program_id', options.programIds);
@@ -185,12 +206,14 @@ export function useProperties(options: UsePropertiesOptions = {}) {
         countQuery = countQuery.eq('brand_id', options.brandId);
       }
 
+      // Apply server-side sorting for name/city (Supabase can handle these)
       if (options.sortBy === 'name') {
         query = query.order('name', { ascending: true });
       } else if (options.sortBy === 'city') {
         query = query.order('city', { ascending: true });
       }
 
+      // Fetch count and data in parallel
       const [countResult, dataResult] = await Promise.all([
         countQuery,
         query,
@@ -203,13 +226,16 @@ export function useProperties(options: UsePropertiesOptions = {}) {
 
       setTotalCount(countResult.count || 0);
 
+      // Normalize score data - Supabase returns relations as arrays
       const normalized = (dataResult.data || []).map((p: any) => ({
         ...p,
         score: Array.isArray(p.score) ? p.score[0] || null : p.score,
       }));
 
+      // Sort results - cast to explicit type since Supabase relations aren't typed
       let sorted = normalized as unknown as PropertyQueryResult[];
 
+      // Client-side sorting for score-based sorts (can't sort by joined columns in Supabase)
       if (options.sortBy === 'eri') {
         sorted = sorted.sort((a, b) => {
           const scoreA = a.score?.eri_score ?? 0;
@@ -218,6 +244,8 @@ export function useProperties(options: UsePropertiesOptions = {}) {
         });
       } else if (options.sortBy === 'evs') {
         sorted = sorted.sort((a, b) => {
+          // Properties with EVS scores come first (high to low)
+          // Properties without scores go to the bottom
           const scoreA = a.score?.evs_score;
           const scoreB = b.score?.evs_score;
           if (scoreA == null && scoreB == null) return 0;
@@ -226,7 +254,9 @@ export function useProperties(options: UsePropertiesOptions = {}) {
           return Number(scoreB) - Number(scoreA);
         });
       }
+      // name/city sorting is done server-side in the query
 
+      // Apply final limit after client-side sorting
       const finalLimit = options.limit || 100;
       if (sorted.length > finalLimit) {
         sorted = sorted.slice(0, finalLimit);
@@ -269,6 +299,7 @@ export function useProperty(propertyId: string | undefined) {
       setError(null);
 
       try {
+        // Fetch property with brand and score
         const { data: propertyData, error: propertyError } = await supabase
           .from('properties')
           .select(`
@@ -284,12 +315,14 @@ export function useProperty(propertyId: string | undefined) {
           return;
         }
 
+        // Normalize score - Supabase returns relations as arrays
         const normalizedProperty = {
           ...propertyData,
           score: Array.isArray(propertyData.score) ? propertyData.score[0] || null : propertyData.score,
         };
         setProperty(normalizedProperty as unknown as PropertyQueryResult);
 
+        // Fetch property benefits
         const { data: benefitsData } = await supabase
           .from('property_benefits')
           .select('*')
@@ -298,6 +331,7 @@ export function useProperty(propertyId: string | undefined) {
 
         setBenefits(benefitsData);
 
+        // Fetch property details (new table with extended info)
         const { data: detailsData } = await supabase
           .from('property_details')
           .select('*')
@@ -306,6 +340,7 @@ export function useProperty(propertyId: string | undefined) {
 
         setDetails(detailsData as PropertyDetails | null);
 
+        // Fetch property lounges
         const { data: loungesData } = await supabase
           .from('property_lounges')
           .select('*')
@@ -313,20 +348,24 @@ export function useProperty(propertyId: string | undefined) {
 
         setLounges((loungesData as PropertyLounge[]) || []);
 
+        // Fetch recent audits for this property
         const { data: auditsData, error: auditsError } = await supabase
           .from('stay_audits')
           .select('*')
           .eq('property_id', propertyId)
           .order('stay_date', { ascending: false })
-          .limit(50);
+          .limit(50);  // Fetch more for better upgrade stats calculation
 
         if (!auditsError && auditsData) {
           setAudits(auditsData);
 
+          // Calculate upgrade statistics from audits
+          // Get brand code for brand-specific room classification
           const brandCode = (propertyData as PropertyQueryResult)?.brand?.name?.toLowerCase().split(' ')[0];
           const stats = await calculateUpgradeStats(auditsData, brandCode);
           setUpgradeStats(stats);
 
+          // Calculate EVS (Elite Value Score)
           const hasLounge = (loungesData && loungesData.length > 0) || false;
           const loungeHappyHour = loungesData?.[0]?.evening_food_quality || null;
           const evs = calculateEVSFromAudits(
@@ -372,12 +411,17 @@ export function useBrands() {
   return { brands, loading };
 }
 
+/**
+ * Fetch loyalty programs from database with property counts
+ * Now uses the loyalty_programs table instead of hardcoded values
+ */
 export function useLoyaltyPrograms(search?: string) {
   const [programs, setPrograms] = useState<LoyaltyProgram[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPrograms = async () => {
+      // Fetch programs from database
       const { data: programData, error: programError } = await supabase
         .from('loyalty_programs')
         .select('*')
@@ -388,6 +432,7 @@ export function useLoyaltyPrograms(search?: string) {
         return;
       }
 
+      // Count properties for each program (filtered by search if provided)
       const programsWithCounts = await Promise.all(
         programData.map(async (program) => {
           let query = supabase
@@ -411,6 +456,7 @@ export function useLoyaltyPrograms(search?: string) {
         })
       );
 
+      // Sort by property count descending
       programsWithCounts.sort((a, b) => b.propertyCount - a.propertyCount);
 
       setPrograms(programsWithCounts);
@@ -423,6 +469,9 @@ export function useLoyaltyPrograms(search?: string) {
   return { programs, loading };
 }
 
+/**
+ * Get all brand IDs for a loyalty program
+ */
 export function getBrandIdsForProgram(programId: string, brands: (Brand & { program_id?: string })[]): string[] {
   return brands
     .filter((b) => b.program_id === programId)
