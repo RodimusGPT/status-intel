@@ -11,17 +11,24 @@ import {
 interface InfoTooltipProps {
   title: string;
   explanation: string;
+  /** Optional additional context like sample size */
   context?: string;
+  /** Icon size - defaults to 14 */
   size?: number;
+  /** Icon color - defaults to gray */
   color?: string;
 }
 
+/**
+ * Mobile-friendly tooltip that shows explanation on tap.
+ * Uses a bottom modal pattern common in mobile apps.
+ */
 export function InfoTooltip({
   title,
   explanation,
   context,
   size = 14,
-  color = '#9CA3AF'
+  color = '#9CA3AF' // gray-400
 }: InfoTooltipProps) {
   const [visible, setVisible] = useState(false);
 

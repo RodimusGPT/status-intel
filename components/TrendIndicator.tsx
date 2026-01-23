@@ -11,12 +11,12 @@ export function TrendIndicator({ trend, size = 'medium', showLabel = true }: Tre
   const getTrendConfig = (t: Enums<'trend_direction'> | null | undefined) => {
     switch (t) {
       case 'improving':
-        return { icon: '\u2191', color: '#22c55e', label: 'Improving' };
+        return { icon: '↑', color: '#22c55e', label: 'Improving' };
       case 'declining':
-        return { icon: '\u2193', color: '#ef4444', label: 'Declining' };
+        return { icon: '↓', color: '#ef4444', label: 'Declining' };
       case 'stable':
       default:
-        return { icon: '\u2192', color: '#6b7280', label: 'Stable' };
+        return { icon: '→', color: '#6b7280', label: 'Stable' };
     }
   };
 

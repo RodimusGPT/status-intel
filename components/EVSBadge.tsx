@@ -1,5 +1,9 @@
 /**
  * Elite Value Score Badge
+ *
+ * Displays the EVS (1-10) with color coding based on score tier.
+ * This is the primary score for elite travelers - combines upgrade rate,
+ * lounge quality, breakfast, service, and more into one actionable number.
  */
 
 import { View, Text, StyleSheet } from 'react-native';
@@ -11,10 +15,10 @@ interface EVSBadgeProps {
 }
 
 function getEVSColor(score: number): string {
-  if (score >= 7) return '#059669';
-  if (score >= 5) return '#0ea5e9';
-  if (score >= 3) return '#f59e0b';
-  return '#ef4444';
+  if (score >= 7) return '#059669';  // Green - Excellent
+  if (score >= 5) return '#0ea5e9';  // Blue - Good
+  if (score >= 3) return '#f59e0b';  // Amber - Average
+  return '#ef4444';                   // Red - Poor
 }
 
 function getEVSGrade(score: number): string {
@@ -26,6 +30,7 @@ function getEVSGrade(score: number): string {
 }
 
 export function EVSBadge({ score, size = 'medium', showLabel = true }: EVSBadgeProps) {
+  // Handle string scores from database (DECIMAL type)
   const numericScore = typeof score === 'string' ? parseFloat(score) : score;
   const displayScore = numericScore ?? 0;
   const color = getEVSColor(displayScore);

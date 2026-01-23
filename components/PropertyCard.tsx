@@ -11,6 +11,7 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property }: PropertyCardProps) {
+  // Handle both array and object score (Supabase returns array for relations)
   const rawScore = property.score;
   const score = Array.isArray(rawScore) ? rawScore[0] : rawScore;
 
@@ -29,6 +30,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Text style={styles.brand}>{property.brand.name}</Text>
             )}
             <View style={styles.stats}>
+              {/* Suite upgrade confidence - shows tier label, not raw % */}
               {score?.suite_upgrade_pct != null && (() => {
                 const confidence = getUpgradeConfidence(
                   score.suite_upgrade_pct,
@@ -51,6 +53,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
                   </View>
                 );
               })()}
+              {/* Room upgrade - still shows tier for consistency */}
               {score?.room_upgrade_pct != null && score?.suite_upgrade_pct == null && (() => {
                 const confidence = getUpgradeConfidence(
                   score.room_upgrade_pct,
@@ -147,12 +150,12 @@ const styles = StyleSheet.create({
   suiteUpgrade: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7c3aed',
+    color: '#7c3aed',  // Purple for suite - the premium metric
   },
   roomUpgrade: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#059669',
+    color: '#059669',  // Green for any upgrade
   },
   upgradeLabel: {
     fontSize: 9,
