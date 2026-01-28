@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { TablesInsert, Tables, Enums } from '@/lib/database.types';
-import { useAuth } from './useAuth';
 
 type StayAudit = Tables<'stay_audits'>;
 type StayAuditInsert = TablesInsert<'stay_audits'>;
@@ -9,8 +8,8 @@ type StayAuditInsert = TablesInsert<'stay_audits'>;
 export interface AuditFormData {
   propertyId: string;
   tierId?: string;
-  bookedCategoryId?: string;
-  receivedCategoryId?: string;
+  bookedRoomType?: Enums<'room_type'>;
+  receivedRoomType?: Enums<'room_type'>;
   recognitionStyle: Enums<'recognition_style'>;
   loungeScore?: number;
   breakfastScore?: number;
@@ -23,29 +22,29 @@ export interface AuditFormData {
   loungeQuality?: Enums<'lounge_quality'>;
   lateCheckoutGranted?: boolean;
   actualCheckoutTime?: string;
+  // Upgrade Experience (how good was the upgrade, not just what room)
+  upgradeEffort?: Enums<'upgrade_effort'>;
+  upgradeSatisfaction?: number; // 1-5
+  upgradeRoomQuality?: Enums<'upgrade_room_quality'>;
+  upgradeLocationQuality?: Enums<'upgrade_location_quality'>;
+  upgradeNotes?: string;
 }
 
 export function useAudit() {
-  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submitAudit = async (formData: AuditFormData): Promise<StayAudit | null> => {
-    if (!user) {
-      setError('You must be logged in to submit an audit');
-      return null;
-    }
-
     setSubmitting(true);
     setError(null);
 
     try {
       const audit: StayAuditInsert = {
-        user_id: user.id,
+        user_id: null,
         property_id: formData.propertyId,
         tier_id: formData.tierId,
-        booked_category_id: formData.bookedCategoryId,
-        received_category_id: formData.receivedCategoryId,
+        booked_room_type: formData.bookedRoomType,
+        received_room_type: formData.receivedRoomType,
         recognition_style: formData.recognitionStyle,
         lounge_score: formData.loungeScore,
         breakfast_score: formData.breakfastScore,
@@ -58,6 +57,12 @@ export function useAudit() {
         lounge_quality: formData.loungeQuality,
         late_checkout_granted: formData.lateCheckoutGranted,
         actual_checkout_time: formData.actualCheckoutTime,
+        // Upgrade Experience
+        upgrade_effort: formData.upgradeEffort,
+        upgrade_satisfaction: formData.upgradeSatisfaction,
+        upgrade_room_quality: formData.upgradeRoomQuality,
+        upgrade_location_quality: formData.upgradeLocationQuality,
+        upgrade_notes: formData.upgradeNotes,
       };
 
       const { data, error: submitError } = await supabase
@@ -87,38 +92,7 @@ export function useAudit() {
   return { submitAudit, submitting, error };
 }
 
-export function useUserAudits() {
-  const { user } = useAuth();
-  const [audits, setAudits] = useState<StayAudit[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchAudits = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from('stay_audits')
-      .select(`
-        *,
-        property:properties(name, city)
-      `)
-      .eq('user_id', user.id)
-      .order('stay_date', { ascending: false });
-
-    if (!error && data) {
-      setAudits(data);
-    }
-    setLoading(false);
-  };
-
-  return { audits, loading, refetch: fetchAudits };
-}
-
-export function useLoyaltyTiers(brandId?: string) {
+export function useLoyaltyTiers(programId?: string) {
   const [tiers, setTiers] = useState<Tables<'loyalty_tiers'>[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -128,8 +102,8 @@ export function useLoyaltyTiers(brandId?: string) {
       .select('*')
       .order('level', { ascending: true });
 
-    if (brandId) {
-      query = query.eq('brand_id', brandId);
+    if (programId) {
+      query = query.eq('program_id', programId);
     }
 
     const { data, error } = await query;
@@ -143,27 +117,27 @@ export function useLoyaltyTiers(brandId?: string) {
   return { tiers, loading, fetchTiers };
 }
 
-export function useRoomCategories(brandId?: string) {
-  const [categories, setCategories] = useState<Tables<'standardized_rooms'>[]>([]);
-  const [loading, setLoading] = useState(true);
+// Standardized room types for upgrade tracking (not specific hotel room names)
+export interface RoomCategory {
+  id: Enums<'room_type'>;
+  name: string;
+  tier: number;
+}
 
-  const fetchCategories = async () => {
-    let query = supabase
-      .from('standardized_rooms')
-      .select('*')
-      .order('tier', { ascending: true });
+const STANDARD_ROOM_CATEGORIES: RoomCategory[] = [
+  { id: 'standard', name: 'Standard Room', tier: 1 },
+  { id: 'premium', name: 'Premium Room', tier: 2 },
+  { id: 'junior_suite', name: 'Junior Suite', tier: 3 },
+  { id: 'suite', name: 'Suite', tier: 4 },
+  { id: 'specialty', name: 'Specialty Suite', tier: 5 },
+];
 
-    if (brandId) {
-      query = query.eq('brand_id', brandId);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      setCategories(data);
-    }
-    setLoading(false);
+export function useRoomCategories(_programId?: string) {
+  // Use standardized room types, not specific hotel room names
+  // This allows consistent upgrade tracking across all properties
+  return {
+    categories: STANDARD_ROOM_CATEGORIES,
+    loading: false,
+    fetchCategories: () => {}
   };
-
-  return { categories, loading, fetchCategories };
 }

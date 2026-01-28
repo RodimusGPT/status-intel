@@ -8,38 +8,28 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useProperties } from '@/hooks/useProperty';
 import { AuditForm } from '@/components/AuditForm';
 
 export default function AuditScreen() {
-  const { user } = useAuth();
+  // Get params if navigating from property page
+  const params = useLocalSearchParams<{ propertyId?: string; programId?: string }>();
+
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-  const [selectedBrandId, setSelectedBrandId] = useState<string | undefined>();
+  const [selectedProgramId, setSelectedProgramId] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
   const { properties, loading } = useProperties({ search });
 
-  // If not logged in, show login prompt
-  if (!user) {
-    return (
-      <View style={styles.authPrompt}>
-        <Text style={styles.authIcon}>{'\uD83D\uDD10'}</Text>
-        <Text style={styles.authTitle}>Sign In Required</Text>
-        <Text style={styles.authText}>
-          You need to be signed in to submit mission reports.
-        </Text>
-        <Pressable
-          style={styles.authButton}
-          onPress={() => router.push('/auth/login')}
-        >
-          <Text style={styles.authButtonText}>Sign In</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  // Pre-select property if coming from property page
+  useEffect(() => {
+    if (params.propertyId) {
+      setSelectedPropertyId(params.propertyId);
+      setSelectedProgramId(params.programId || undefined);
+    }
+  }, [params.propertyId, params.programId]);
 
   // Show success state
   if (showSuccess) {
@@ -74,6 +64,14 @@ export default function AuditScreen() {
     const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
     return (
       <View style={styles.formContainer}>
+        {/* Back to Search link */}
+        <Pressable
+          style={styles.backToSearchHeader}
+          onPress={() => router.push('/')}
+        >
+          <Text style={styles.backToSearchText}>{'\u2190'} Back to Search</Text>
+        </Pressable>
+
         <View style={styles.selectedProperty}>
           <View style={styles.selectedPropertyInfo}>
             <Text style={styles.selectedPropertyName}>{selectedProperty?.name}</Text>
@@ -90,7 +88,7 @@ export default function AuditScreen() {
         </View>
         <AuditForm
           propertyId={selectedPropertyId}
-          brandId={selectedBrandId}
+          programId={selectedProgramId}
           onSuccess={() => setShowSuccess(true)}
         />
       </View>
@@ -101,9 +99,15 @@ export default function AuditScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <Pressable
+          style={styles.backToSearchButton}
+          onPress={() => router.push('/')}
+        >
+          <Text style={styles.backToSearchText}>{'\u2190'} Back to Search</Text>
+        </Pressable>
         <Text style={styles.headerTitle}>Select Property</Text>
         <Text style={styles.headerSubtitle}>
-          Choose the property you want to audit
+          Choose the property you want to contribute intel for
         </Text>
       </View>
 
@@ -130,7 +134,7 @@ export default function AuditScreen() {
               style={styles.propertyItem}
               onPress={() => {
                 setSelectedPropertyId(item.id);
-                setSelectedBrandId(item.brand_id || undefined);
+                setSelectedProgramId(item.brand?.program_id || undefined);
               }}
             >
               <View style={styles.propertyInfo}>
@@ -179,6 +183,20 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  backToSearchButton: {
+    marginBottom: 12,
+  },
+  backToSearchHeader: {
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backToSearchText: {
+    fontSize: 14,
+    color: '#0ea5e9',
+    fontWeight: '500',
   },
   searchContainer: {
     padding: 16,

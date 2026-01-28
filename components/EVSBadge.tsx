@@ -45,10 +45,18 @@ export function EVSBadge({ score, size = 'medium', showLabel = true }: EVSBadgeP
   const currentSize = sizeStyles[size];
 
   if (numericScore === null || numericScore === undefined || isNaN(numericScore)) {
+    // Compact display for small size, detailed for larger sizes
+    if (size === 'small') {
+      return (
+        <View style={[styles.container, currentSize.container, styles.noScore]}>
+          <Text style={[styles.score, currentSize.score, { color: '#9ca3af' }]}>—</Text>
+        </View>
+      );
+    }
     return (
       <View style={[styles.container, currentSize.container, styles.noScore]}>
         <Text style={[styles.score, currentSize.score, { color: '#9ca3af' }]}>?</Text>
-        <Text style={[styles.noDataText, currentSize.grade, { color: '#9ca3af' }]}>Not enough{'\n'}info</Text>
+        <Text style={[styles.noDataText, currentSize.grade, { color: '#9ca3af' }]}>No data</Text>
       </View>
     );
   }

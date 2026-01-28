@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { PropertyCard } from '@/components/PropertyCard';
 import { useProperties, useLoyaltyPrograms, LoyaltyProgram } from '@/hooks/useProperty';
 
@@ -20,13 +21,15 @@ const formatCount = (count: number): string => {
 export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<'eri' | 'evs' | 'name' | 'city'>('evs');
+  const [sortBy, setSortBy] = useState<'evs' | 'name' | 'city'>('evs');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const { programs } = useLoyaltyPrograms(search || undefined);
 
   const { properties, totalCount, loading, error, refetch } = useProperties({
     search,
     sortBy,
+    sortDirection,
     programIds: selectedPrograms.length > 0 ? selectedPrograms : undefined,
     limit: 100,
   });
@@ -49,6 +52,13 @@ export default function HomeScreen() {
 
   const programsWithCounts = useMemo(() => {
     return programs.map((p) => ({ ...p })).sort((a, b) => b.propertyCount - a.propertyCount);
+  }, [programs]);
+
+  // Map from program ID to program name for PropertyCard display
+  const programNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    programs.forEach((p) => map.set(p.id, p.name));
+    return map;
   }, [programs]);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -94,14 +104,23 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search properties, cities, or countries..."
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#9ca3af"
-        />
+        <View style={styles.searchInputWrapper}>
+          <Ionicons name="search" size={18} color="#9ca3af" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search hotels, cities..."
+            value={search}
+            onChangeText={setSearch}
+            placeholderTextColor="#9ca3af"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color="#9ca3af" />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <View style={styles.filterContainer}>
@@ -136,23 +155,51 @@ export default function HomeScreen() {
 
       <View style={styles.sortContainer}>
         <Text style={styles.sortLabel}>Sort by:</Text>
-        {(['evs', 'eri', 'name', 'city'] as const).map((option) => (
-          <Pressable
-            key={option}
-            style={[styles.sortOption, sortBy === option && styles.sortOptionActive]}
-            onPress={() => setSortBy(option)}
-          >
-            <Text style={[styles.sortOptionText, sortBy === option && styles.sortOptionTextActive]}>
-              {option === 'evs' ? 'Elite Score' : option === 'eri' ? 'ERI' : option.charAt(0).toUpperCase() + option.slice(1)}
-            </Text>
-          </Pressable>
-        ))}
+        {(['evs', 'name', 'city'] as const).map((option) => {
+          const isActive = sortBy === option;
+          const defaultDir = option === 'evs' ? 'desc' : 'asc';
+
+          return (
+            <Pressable
+              key={option}
+              style={[styles.sortOption, isActive && styles.sortOptionActive]}
+              onPress={() => {
+                if (isActive) {
+                  // Toggle direction if same option clicked
+                  setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                } else {
+                  // Set new sort option with its default direction
+                  setSortBy(option);
+                  setSortDirection(defaultDir);
+                }
+              }}
+            >
+              <Text style={[styles.sortOptionText, isActive && styles.sortOptionTextActive]}>
+                {option === 'evs' ? 'Elite Score' : option.charAt(0).toUpperCase() + option.slice(1)}
+              </Text>
+              {isActive && (
+                <Ionicons
+                  name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+                  size={14}
+                  color="#0369a1"
+                  style={{ marginLeft: 4 }}
+                />
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       <FlatList
         data={properties}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <PropertyCard property={item} />}
+        renderItem={({ item, index }) => (
+          <PropertyCard
+            property={item}
+            loyaltyProgramName={item.brand?.program_id ? programNameMap.get(item.brand.program_id) : undefined}
+            index={index}
+          />
+        )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0ea5e9" />}
@@ -163,22 +210,63 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f3f4f6' },
-  searchContainer: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  searchInput: { backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#111827' },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  searchIcon: { marginLeft: 12 },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  clearButton: { padding: 8, marginRight: 4 },
   filterContainer: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  filterList: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f3f4f6', marginHorizontal: 4, gap: 6 },
-  filterChipActive: { backgroundColor: '#0ea5e9' },
-  filterChipText: { fontSize: 14, color: '#4b5563', fontWeight: '500' },
+  filterList: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginHorizontal: 4,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  filterChipActive: { backgroundColor: '#0ea5e9', borderColor: '#0ea5e9' },
+  filterChipText: { fontSize: 14, color: '#374151', fontWeight: '500' },
   filterChipTextActive: { color: '#fff' },
-  filterChipCount: { fontSize: 12, color: '#9ca3af', fontWeight: '600' },
-  filterChipCountActive: { color: 'rgba(255, 255, 255, 0.8)' },
-  sortContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  sortLabel: { fontSize: 14, color: '#6b7280', marginRight: 8 },
-  sortOption: { paddingHorizontal: 12, paddingVertical: 6, marginRight: 8, borderRadius: 6 },
-  sortOptionActive: { backgroundColor: '#e0f2fe' },
-  sortOptionText: { fontSize: 14, color: '#6b7280' },
-  sortOptionTextActive: { color: '#0ea5e9', fontWeight: '600' },
+  filterChipCount: { fontSize: 11, color: '#6b7280', fontWeight: '600', backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  filterChipCountActive: { color: '#0369a1', backgroundColor: 'rgba(255, 255, 255, 0.9)' },
+  sortContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  sortLabel: { fontSize: 13, color: '#6b7280', marginRight: 10, fontWeight: '500' },
+  sortOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, marginRight: 6, borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
+  sortOptionActive: { backgroundColor: '#e0f2fe', borderColor: '#bae6fd' },
+  sortOptionText: { fontSize: 13, color: '#6b7280' },
+  sortOptionTextActive: { color: '#0369a1', fontWeight: '600' },
   listContent: { paddingVertical: 8, flexGrow: 1 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyIcon: { fontSize: 48, marginBottom: 16 },
