@@ -76,6 +76,19 @@ export default function TabLayout() {
           headerTintColor: '#fff',
         }}
       />
+      {/* Hide legacy routes from tab bar - files still exist but won't show as tabs */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="submit-report"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
