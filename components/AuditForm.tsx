@@ -5,7 +5,7 @@ import { useAudit, AuditFormData, useLoyaltyTiers, useRoomCategories } from '@/h
 
 interface AuditFormProps {
   propertyId: string;
-  brandId?: string;
+  programId?: string;
   onSuccess?: () => void;
 }
 
@@ -42,7 +42,31 @@ const LOUNGE_QUALITY_OPTIONS: { value: Enums<'lounge_quality'>; label: string }[
   { value: 'none', label: 'No Lounge' },
 ];
 
-export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
+const UPGRADE_EFFORT_OPTIONS: { value: Enums<'upgrade_effort'>; label: string; description: string }[] = [
+  { value: 'proactive', label: 'Proactive', description: 'Offered without asking' },
+  { value: 'asked_once', label: 'Asked Once', description: 'Asked and received immediately' },
+  { value: 'asked_multiple', label: 'Asked Multiple', description: 'Had to ask several times' },
+  { value: 'negotiated', label: 'Negotiated', description: 'Required escalation or negotiation' },
+  { value: 'denied_then_granted', label: 'Initially Denied', description: 'Denied at first, later granted' },
+  { value: 'denied', label: 'Denied', description: 'Requested but not granted' },
+];
+
+const UPGRADE_ROOM_QUALITY_OPTIONS: { value: Enums<'upgrade_room_quality'>; label: string }[] = [
+  { value: 'best_in_class', label: 'Best in Class' },
+  { value: 'above_average', label: 'Above Average' },
+  { value: 'average', label: 'Average' },
+  { value: 'below_average', label: 'Below Average' },
+  { value: 'disappointing', label: 'Disappointing' },
+];
+
+const UPGRADE_LOCATION_OPTIONS: { value: Enums<'upgrade_location_quality'>; label: string }[] = [
+  { value: 'excellent', label: 'Excellent' },
+  { value: 'good', label: 'Good' },
+  { value: 'acceptable', label: 'Acceptable' },
+  { value: 'poor', label: 'Poor' },
+];
+
+export function AuditForm({ propertyId, programId, onSuccess }: AuditFormProps) {
   const [step, setStep] = useState<Step>(1);
   const [formData, setFormData] = useState<Partial<AuditFormData>>({
     propertyId,
@@ -50,13 +74,13 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
   });
 
   const { submitAudit, submitting, error } = useAudit();
-  const { tiers, fetchTiers } = useLoyaltyTiers(brandId);
-  const { categories, fetchCategories } = useRoomCategories(brandId);
+  const { tiers, fetchTiers } = useLoyaltyTiers(programId);
+  const { categories, fetchCategories } = useRoomCategories(programId);
 
   useEffect(() => {
     fetchTiers();
     fetchCategories();
-  }, [brandId]);
+  }, [programId]);
 
   const handleRecognitionSelect = (value: Enums<'recognition_style'>) => {
     setFormData({ ...formData, recognitionStyle: value });
@@ -72,8 +96,8 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
     const result = await submitAudit({
       propertyId,
       tierId: formData.tierId,
-      bookedCategoryId: formData.bookedCategoryId,
-      receivedCategoryId: formData.receivedCategoryId,
+      bookedRoomType: formData.bookedRoomType,
+      receivedRoomType: formData.receivedRoomType,
       recognitionStyle: formData.recognitionStyle,
       loungeScore: formData.loungeScore,
       breakfastScore: formData.breakfastScore,
@@ -86,6 +110,12 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
       loungeQuality: formData.loungeQuality,
       lateCheckoutGranted: formData.lateCheckoutGranted,
       actualCheckoutTime: formData.actualCheckoutTime,
+      // Upgrade Experience
+      upgradeEffort: formData.upgradeEffort,
+      upgradeSatisfaction: formData.upgradeSatisfaction,
+      upgradeRoomQuality: formData.upgradeRoomQuality,
+      upgradeLocationQuality: formData.upgradeLocationQuality,
+      upgradeNotes: formData.upgradeNotes,
     });
 
     if (result) {
@@ -144,10 +174,37 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
         ))}
       </View>
 
-      {/* Step 1: Recognition Style */}
+      {/* Step 1: Elite Status & Recognition */}
       {step === 1 && (
         <View style={styles.stepContainer}>
-          <Text style={styles.stepTitle}>Recognition Style</Text>
+          <Text style={styles.stepTitle}>Your Elite Status</Text>
+          <Text style={styles.stepDescription}>What tier were you during this stay?</Text>
+
+          <View style={styles.categoryOptions}>
+            {tiers.length > 0 ? (
+              tiers.map((tier) => (
+                <Pressable
+                  key={tier.id}
+                  style={[
+                    styles.categoryChip,
+                    formData.tierId === tier.id && styles.categoryChipSelected,
+                  ]}
+                  onPress={() => setFormData({ ...formData, tierId: tier.id })}
+                >
+                  <Text style={[
+                    styles.categoryChipText,
+                    formData.tierId === tier.id && styles.categoryChipTextSelected,
+                  ]}>
+                    {tier.name}
+                  </Text>
+                </Pressable>
+              ))
+            ) : (
+              <Text style={styles.optionDescription}>No tiers available for this brand</Text>
+            )}
+          </View>
+
+          <Text style={[styles.stepTitle, { marginTop: 24 }]}>Recognition Style</Text>
           <Text style={styles.stepDescription}>How was your elite status recognized?</Text>
           <View style={styles.optionsGrid}>
             {RECOGNITION_OPTIONS.map((option) => (
@@ -172,10 +229,10 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
         </View>
       )}
 
-      {/* Step 2: Room Delta */}
+      {/* Step 2: Room Delta + Upgrade Experience */}
       {step === 2 && (
         <View style={styles.stepContainer}>
-          <Text style={styles.stepTitle}>Room Category</Text>
+          <Text style={styles.stepTitle}>Room Upgrade</Text>
           <Text style={styles.stepDescription}>What room type did you book vs. receive?</Text>
 
           <Text style={styles.fieldLabel}>Booked Category</Text>
@@ -185,15 +242,15 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
                 key={cat.id}
                 style={[
                   styles.categoryChip,
-                  formData.bookedCategoryId === cat.id && styles.categoryChipSelected,
+                  formData.bookedRoomType === cat.id && styles.categoryChipSelected,
                 ]}
-                onPress={() => setFormData({ ...formData, bookedCategoryId: cat.id })}
+                onPress={() => setFormData({ ...formData, bookedRoomType: cat.id })}
               >
                 <Text style={[
                   styles.categoryChipText,
-                  formData.bookedCategoryId === cat.id && styles.categoryChipTextSelected,
+                  formData.bookedRoomType === cat.id && styles.categoryChipTextSelected,
                 ]}>
-                  {cat.category}
+                  {cat.name}
                 </Text>
               </Pressable>
             ))}
@@ -206,19 +263,127 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
                 key={cat.id}
                 style={[
                   styles.categoryChip,
-                  formData.receivedCategoryId === cat.id && styles.categoryChipSelected,
+                  formData.receivedRoomType === cat.id && styles.categoryChipSelected,
                 ]}
-                onPress={() => setFormData({ ...formData, receivedCategoryId: cat.id })}
+                onPress={() => setFormData({ ...formData, receivedRoomType: cat.id })}
               >
                 <Text style={[
                   styles.categoryChipText,
-                  formData.receivedCategoryId === cat.id && styles.categoryChipTextSelected,
+                  formData.receivedRoomType === cat.id && styles.categoryChipTextSelected,
                 ]}>
-                  {cat.category}
+                  {cat.name}
                 </Text>
               </Pressable>
             ))}
           </View>
+
+          {/* Upgrade Experience - only show if they got an upgrade */}
+          {formData.bookedRoomType && formData.receivedRoomType &&
+           formData.bookedRoomType !== formData.receivedRoomType && (
+            <>
+              <Text style={[styles.stepTitle, { marginTop: 24, fontSize: 18 }]}>
+                Upgrade Experience
+              </Text>
+              <Text style={styles.stepDescription}>
+                How was the upgrade? (This helps others know what to expect)
+              </Text>
+
+              <Text style={styles.fieldLabel}>How did you get the upgrade?</Text>
+              <View style={styles.optionsGrid}>
+                {UPGRADE_EFFORT_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    style={[
+                      styles.optionCard,
+                      { padding: 12 },
+                      formData.upgradeEffort === option.value && styles.optionCardSelected,
+                    ]}
+                    onPress={() => setFormData({ ...formData, upgradeEffort: option.value })}
+                  >
+                    <Text style={[
+                      styles.optionLabel,
+                      { fontSize: 14 },
+                      formData.upgradeEffort === option.value && styles.optionLabelSelected,
+                    ]}>
+                      {option.label}
+                    </Text>
+                    <Text style={[styles.optionDescription, { fontSize: 12 }]}>
+                      {option.description}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>Upgrade Satisfaction (1-5)</Text>
+              <View style={styles.stars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Pressable
+                    key={star}
+                    onPress={() => setFormData({ ...formData, upgradeSatisfaction: star })}
+                    style={styles.starButton}
+                  >
+                    <Text style={[
+                      styles.star,
+                      star <= (formData.upgradeSatisfaction || 0) && styles.starFilled
+                    ]}>
+                      {star <= (formData.upgradeSatisfaction || 0) ? '\u2605' : '\u2606'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>Room Quality (within category)</Text>
+              <View style={styles.categoryOptions}>
+                {UPGRADE_ROOM_QUALITY_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.categoryChip,
+                      formData.upgradeRoomQuality === opt.value && styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setFormData({ ...formData, upgradeRoomQuality: opt.value })}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      formData.upgradeRoomQuality === opt.value && styles.categoryChipTextSelected,
+                    ]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>Location Quality (floor, view, noise)</Text>
+              <View style={styles.categoryOptions}>
+                {UPGRADE_LOCATION_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.categoryChip,
+                      formData.upgradeLocationQuality === opt.value && styles.categoryChipSelected,
+                    ]}
+                    onPress={() => setFormData({ ...formData, upgradeLocationQuality: opt.value })}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      formData.upgradeLocationQuality === opt.value && styles.categoryChipTextSelected,
+                    ]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.fieldLabel}>Upgrade Notes (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.upgradeNotes}
+                onChangeText={(text) => setFormData({ ...formData, upgradeNotes: text })}
+                placeholder="e.g., Corner suite on low floor, great view but near elevator"
+                multiline
+              />
+            </>
+          )}
         </View>
       )}
 
@@ -356,6 +521,13 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
           <Text style={styles.stepDescription}>Review your audit before submitting</Text>
 
           <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Elite Tier:</Text>
+            <Text style={styles.reviewValue}>
+              {tiers.find((t) => t.id === formData.tierId)?.name || '-'}
+            </Text>
+          </View>
+
+          <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Recognition:</Text>
             <Text style={styles.reviewValue}>
               {RECOGNITION_OPTIONS.find((o) => o.value === formData.recognitionStyle)?.label || '-'}
@@ -365,9 +537,39 @@ export function AuditForm({ propertyId, brandId, onSuccess }: AuditFormProps) {
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Room Upgrade:</Text>
             <Text style={styles.reviewValue}>
-              {formData.bookedCategoryId !== formData.receivedCategoryId ? 'Yes' : 'No'}
+              {formData.bookedRoomType !== formData.receivedRoomType ? 'Yes' : 'No'}
             </Text>
           </View>
+
+          {/* Show upgrade experience if they got an upgrade */}
+          {formData.bookedRoomType !== formData.receivedRoomType && (
+            <>
+              <View style={styles.reviewItem}>
+                <Text style={styles.reviewLabel}>Upgrade Effort:</Text>
+                <Text style={styles.reviewValue}>
+                  {UPGRADE_EFFORT_OPTIONS.find((o) => o.value === formData.upgradeEffort)?.label || '-'}
+                </Text>
+              </View>
+              <View style={styles.reviewItem}>
+                <Text style={styles.reviewLabel}>Upgrade Satisfaction:</Text>
+                <Text style={styles.reviewValue}>
+                  {formData.upgradeSatisfaction ? `${formData.upgradeSatisfaction}/5` : '-'}
+                </Text>
+              </View>
+              <View style={styles.reviewItem}>
+                <Text style={styles.reviewLabel}>Room Quality:</Text>
+                <Text style={styles.reviewValue}>
+                  {UPGRADE_ROOM_QUALITY_OPTIONS.find((o) => o.value === formData.upgradeRoomQuality)?.label || '-'}
+                </Text>
+              </View>
+              <View style={styles.reviewItem}>
+                <Text style={styles.reviewLabel}>Location Quality:</Text>
+                <Text style={styles.reviewValue}>
+                  {UPGRADE_LOCATION_OPTIONS.find((o) => o.value === formData.upgradeLocationQuality)?.label || '-'}
+                </Text>
+              </View>
+            </>
+          )}
 
           <View style={styles.reviewItem}>
             <Text style={styles.reviewLabel}>Pulse Scores:</Text>
