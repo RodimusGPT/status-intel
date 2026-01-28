@@ -1,6 +1,7 @@
 import React from 'react';
+import { TouchableOpacity, Text, Platform } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -11,6 +12,31 @@ function TabBarIcon(props: {
   color: string;
 }) {
   return <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
+}
+
+function HeaderTitle({ title }: { title: string }) {
+  const router = useRouter();
+
+  const handlePress = () => {
+    // Navigate to home - use push then back to force refresh
+    if (Platform.OS === 'web') {
+      window.location.href = '/';
+    } else {
+      router.replace('/');
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      activeOpacity={0.7}
+      style={Platform.OS === 'web' ? { cursor: 'pointer' } as any : undefined}
+    >
+      <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
 }
 
 export default function TabLayout() {
@@ -31,22 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ color }) => <TabBarIcon name="search" color={color} />,
-          headerTitle: 'Status Intel',
-          headerStyle: {
-            backgroundColor: '#0ea5e9',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="submit-report"
-        options={{
-          title: 'Submit',
-          tabBarIcon: ({ color }) => <TabBarIcon name="plus-circle" color={color} />,
-          headerTitle: 'Share Your Stay',
+          headerTitle: () => <HeaderTitle title="Status Intel" />,
           headerStyle: {
             backgroundColor: '#0ea5e9',
           },
@@ -56,15 +67,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="audit"
         options={{
-          href: null, // Hide this tab for now
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-          headerTitle: 'My Profile',
+          title: 'Contribute',
+          tabBarIcon: ({ color }) => <TabBarIcon name="plus-circle" color={color} />,
+          headerTitle: 'Share Your Stay',
           headerStyle: {
             backgroundColor: '#0ea5e9',
           },
